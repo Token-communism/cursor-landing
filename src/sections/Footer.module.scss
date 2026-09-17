@@ -4,25 +4,7 @@
   background: var(--bg-sidebar);
 }
 
-.inner {
-  display: grid;
-  gap: 16px;
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px 22px;
-  font-size: 14px;
-}
-
-.links a,
-.links span {
-  color: var(--fg-muted);
-}
-
 .disclaimer {
-  max-width: 52em;
   font-size: 12px;
   line-height: 1.7;
   color: var(--fg-muted);

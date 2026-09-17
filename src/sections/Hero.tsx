@@ -6,21 +6,38 @@ export function Hero() {
     <header className={styles.hero}>
       <div className={styles.glow} aria-hidden="true" />
       <div className={`wrap ${styles.inner}`}>
-        <img
-          className={styles.logo}
-          src="/logo.webp"
-          width={64}
-          height={64}
-          alt="Cursor 精灵"
-        />
-        <h1 className={styles.title}>Cursor 精灵</h1>
-        <p className={styles.subtitle}>
-          一把密钥，一键启动一份已登录的官方 Cursor
-        </p>
-        <p className={styles.aside}>
-          不改你的 Cursor，不装证书，不走本地代理。两份可以同时开着。
-        </p>
-        <DownloadActions />
+        <div className={styles.copy}>
+          <img
+            className={styles.logo}
+            src="/logo.webp"
+            width={64}
+            height={64}
+            alt="Cursor 精灵"
+          />
+          <h1 className={styles.title}>Cursor 精灵</h1>
+          <p className={styles.subtitle}>
+            一键启动一份已登录的官方 Cursor
+          </p>
+          <DownloadActions />
+        </div>
+
+        <figure className={styles.window}>
+          <div className={styles.titlebar}>
+            <span className={styles.traffic} aria-hidden="true">
+              <i className={styles.red} />
+              <i className={styles.yellow} />
+              <i className={styles.green} />
+            </span>
+            <span className={styles.winTitle}>Cursor 精灵</span>
+          </div>
+          <img
+            className={styles.shot}
+            src="/demo-screenshot.webp"
+            width={820}
+            height={558}
+            alt="Cursor 精灵主界面截图，图中数据为演示数据"
+          />
+        </figure>
       </div>
     </header>
   );

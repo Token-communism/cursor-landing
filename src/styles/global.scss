@@ -19,6 +19,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+#root {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
 img,
 svg {
   display: block;
@@ -45,66 +51,19 @@ summary {
   box-shadow: 0 0 0 3px #49b0ff;
 }
 
-.skip {
-  position: absolute;
-  left: -999px;
-  top: 12px;
-  z-index: 20;
-  padding: 8px 12px;
-  border-radius: var(--radius-control);
-  background: var(--bg-surface);
-  color: var(--fg);
-}
-
-.skip:focus {
-  left: 16px;
-}
-
 .wrap {
   width: min(1080px, calc(100% - 40px));
   margin-inline: auto;
 }
 
-.block {
-  padding: var(--space) 0;
-}
-
-.block + .block {
-  padding-top: calc(var(--space) * 0.35);
-}
-
 h1,
-h2,
-h3,
 p {
   margin: 0;
-}
-
-h2 {
-  font-size: 30px;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-  line-height: 1.25;
-}
-
-h3 {
-  font-size: 18px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-code,
-.mono {
-  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
 }
 
 @media (max-width: 639px) {
   .wrap {
     width: min(1080px, calc(100% - 32px));
-  }
-
-  h2 {
-    font-size: 24px;
   }
 }
 
