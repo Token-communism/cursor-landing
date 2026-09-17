@@ -1,0 +1,98 @@
+.layout {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 28px;
+  align-items: start;
+  margin-top: 28px;
+}
+
+.diagram {
+  min-width: 0;
+  overflow-x: auto;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-sidebar);
+}
+
+.app,
+.box {
+  padding: 12px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--bg-surface);
+  font-size: 14px;
+}
+
+.app {
+  font-weight: 650;
+}
+
+.branches {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-strong);
+}
+
+.branch,
+.nested {
+  display: grid;
+  gap: 8px;
+}
+
+.nested {
+  padding-left: 16px;
+  border-left: 1px dashed var(--border-strong);
+}
+
+.arrow {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.arrow::before {
+  content: "→ ";
+  color: var(--brand-green);
+}
+
+.promises {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.promises li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  gap: 10px;
+  align-items: start;
+  font-size: 16px;
+}
+
+.promises svg {
+  margin-top: 2px;
+  color: var(--brand-green);
+}
+
+.local {
+  margin-top: 22px;
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.local code {
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  font-size: 12px;
+}
+
+@media (max-width: 899px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+}

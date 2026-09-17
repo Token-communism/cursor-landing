@@ -1,0 +1,157 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.primary,
+.secondary,
+.rowLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.primary {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 10px 24px rgb(68 137 255 / 28%);
+}
+
+.primary:hover,
+.secondary:hover,
+.rowLink:hover {
+  text-decoration: none;
+  background: var(--accent-hover);
+  color: #fff;
+}
+
+.secondary {
+  background: var(--bg-subtle);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+}
+
+.secondary:hover {
+  background: var(--bg-subtle);
+  border-color: var(--accent-hover);
+  color: var(--fg);
+}
+
+.pair {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  width: 100%;
+}
+
+.meta {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.note {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.others {
+  width: min(100%, 420px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface);
+}
+
+.others summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+
+.others summary::-webkit-details-marker {
+  display: none;
+}
+
+.others summary::after {
+  content: "▾";
+  float: right;
+  color: var(--fg-muted);
+}
+
+.others ul {
+  margin: 0;
+  padding: 0 14px 12px;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.rowPlatform {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.rowName {
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.size {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.rowLink {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+  background: var(--bg-subtle);
+  color: var(--fg);
+}
+
+.cursorLink {
+  font-size: 13px;
+  color: var(--fg-muted);
+}
+
+.cursorLink:hover {
+  color: var(--accent-hover);
+}
+
+@media (max-width: 639px) {
+  .primary,
+  .secondary {
+    width: 100%;
+  }
+
+  .pair {
+    flex-direction: column;
+  }
+
+  .row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .size {
+    grid-column: 1;
+  }
+}

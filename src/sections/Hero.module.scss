@@ -1,0 +1,83 @@
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 88px 0 72px;
+}
+
+.glow {
+  position: absolute;
+  left: 50%;
+  top: -120px;
+  z-index: -1;
+  width: 780px;
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(
+    ellipse at center,
+    color-mix(in srgb, var(--brand-green) 22%, transparent),
+    color-mix(in srgb, var(--brand-green) 15%, transparent) 42%,
+    transparent 72%
+  );
+  animation: breathe 9s ease-in-out infinite;
+}
+
+.inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 14px;
+}
+
+.title {
+  font-size: clamp(44px, 8vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 1.08;
+}
+
+.subtitle {
+  max-width: 18em;
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--fg);
+}
+
+.aside {
+  max-width: 34em;
+  font-size: 14px;
+  color: var(--fg-muted);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 639px) {
+  .hero {
+    padding: 56px 0 48px;
+  }
+
+  .subtitle {
+    font-size: 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none;
+    opacity: 1;
+  }
+}

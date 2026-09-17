@@ -1,0 +1,22 @@
+:root {
+  --bg-page: #141414;
+  --bg-surface: #1f1f1f;
+  --bg-sidebar: #0f0f0f;
+  --bg-subtle: #2a2a2a;
+  --fg: #ffffffe6;
+  --fg-muted: #ffffffb3;
+  --border: #ffffff0a;
+  --border-strong: #ffffff14;
+  --accent: #4489ff;
+  --accent-hover: #49b0ff;
+  --brand-green: #00ec7e;
+  --success: #22a45d;
+  --danger: #d63a3a;
+  --radius-card: 9px;
+  --radius-control: 7px;
+  --radius-window: 10px;
+  --shadow-card: 0 26px 64px rgb(0 0 0 / 46%);
+  --shadow-overlay: 0 12px 28px rgb(0 0 0 / 38%);
+  --font: "PingFang SC", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+  --space: clamp(64px, 8vw, 104px);
+}
