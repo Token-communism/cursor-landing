@@ -3,48 +3,77 @@ import { fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const API_URL =
-  "https://api.github.com/repos/Token-communism/cursor-jingling/releases/latest";
-const fallbackFile = fileURLToPath(
-  new URL("./src/release.fallback.json", import.meta.url),
+// Only the official Cursor archive is prefetched. Cursor 精灵 links are never
+// baked in: old assets are deleted from GitHub, so a build-time copy goes stale.
+const CURSOR_ARCHIVE_URL =
+  "https://raw.githubusercontent.com/worryzyy/awesome-cursor-download/master/cursor-version-archive.json";
+
+const EMPTY = "{}\n";
+
+const cursorFallback = fileURLToPath(
+  new URL("./src/cursor.fallback.json", import.meta.url),
 );
 
-async function prefetchRelease(): Promise<void> {
-  const empty = "{}\n";
+async function fetchJson(url: string): Promise<unknown | null> {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 10_000);
-    const response = await fetch(API_URL, {
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
-        Accept: "application/vnd.github+json",
+        Accept: "application/json, application/vnd.github+json",
         "User-Agent": "cursor-jingling-docs",
       },
     });
     clearTimeout(timer);
-    if (!response.ok) {
-      writeFileSync(fallbackFile, empty);
-      return;
-    }
-    const data: unknown = await response.json();
-    writeFileSync(fallbackFile, `${JSON.stringify(data, null, 2)}\n`);
+    if (!response.ok) return null;
+    return (await response.json()) as unknown;
   } catch {
-    writeFileSync(fallbackFile, empty);
+    return null;
   }
+}
+
+function writeJson(file: string, data: unknown | null): void {
+  writeFileSync(file, data ? `${JSON.stringify(data, null, 2)}\n` : EMPTY);
+}
+
+function compareVersionDesc(a: string, b: string): number {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(pa.length, pb.length); i += 1) {
+    const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/** Keep only the newest entry so the bundle does not carry the full history. */
+function pickLatestCursor(data: unknown): Record<string, unknown> | null {
+  if (!data || typeof data !== "object") return null;
+  const archive = data as Record<string, unknown>;
+  const version = Object.keys(archive)
+    .filter((key) => /^\d+(\.\d+)*$/.test(key))
+    .sort(compareVersionDesc)[0];
+  return version ? { [version]: archive[version] } : null;
+}
+
+async function prefetch(): Promise<void> {
+  const cursor = await fetchJson(CURSOR_ARCHIVE_URL);
+  writeJson(cursorFallback, pickLatestCursor(cursor));
 }
 
 export default defineConfig(async ({ command }) => {
   if (command === "build") {
-    await prefetchRelease();
+    await prefetch();
   }
   return {
     plugins: [
       react(),
       {
-        name: "restore-release-fallback",
+        name: "restore-fallbacks",
         apply: "build",
         closeBundle() {
-          writeFileSync(fallbackFile, "{}\n");
+          writeFileSync(cursorFallback, EMPTY);
         },
       },
     ],

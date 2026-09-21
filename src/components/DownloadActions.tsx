@@ -4,6 +4,7 @@ import {
   RELEASES_PAGE,
   selectInstaller,
   type InstallerAsset,
+  type ParsedRelease,
 } from "../release";
 import type { VisitorPlatform } from "../platform";
 import styles from "./DownloadActions.module.scss";
@@ -33,19 +34,44 @@ function AssetRow({ asset }: { asset: InstallerAsset }) {
   );
 }
 
-export function DownloadActions() {
-  const { release, platform } = useRelease();
+function Loading() {
+  return (
+    <button type="button" className={styles.primary} disabled aria-busy="true">
+      正在获取最新版本…
+    </button>
+  );
+}
+
+function Failed({ retry }: { retry: () => void }) {
+  return (
+    <div className={styles.failed} role="alert">
+      <p className={styles.failedTitle}>暂时无法获取最新版本</p>
+      <p className={styles.failedDesc}>
+        安装包信息需要从 GitHub 实时读取。请确认当前网络可以访问 github.com（部分网络需要代理），然后重试。
+        为避免下载到已失效的旧版本，页面不会显示历史链接。
+      </p>
+      <div className={styles.failedActions}>
+        <button type="button" className={styles.secondary} onClick={retry}>
+          重试
+        </button>
+        <a className={styles.cursorLink} href={RELEASES_PAGE} rel="noopener noreferrer">
+          前往 GitHub Releases 页面 →
+        </a>
+      </div>
+    </div>
+  );
+}
+
+function Ready({ release, platform }: { release: ParsedRelease; platform: VisitorPlatform }) {
   const matched =
-    release && platform !== "unknown"
-      ? selectInstaller(release.assets, platform)
-      : undefined;
-  const fallback = !release || (platform !== "unknown" && !matched);
+    platform !== "unknown" ? selectInstaller(release.assets, platform) : undefined;
+  const fallback = platform !== "unknown" && !matched;
   const href = matched?.downloadUrl ?? RELEASES_PAGE;
   const label = fallback ? "前往 GitHub 下载" : primaryLabel(platform);
 
   return (
-    <div className={styles.stack}>
-      {platform === "unknown" && release && !fallback ? (
+    <>
+      {platform === "unknown" ? (
         <div className={styles.pair}>
           {release.assets.map((asset) => (
             <a
@@ -66,7 +92,7 @@ export function DownloadActions() {
         </a>
       )}
 
-      {matched && release ? (
+      {matched ? (
         <p className={styles.meta}>
           v{release.version} · {matched.sizeLabel} · {metaChip(matched)} ·{" "}
           {release.publishedAt}
@@ -83,20 +109,28 @@ export function DownloadActions() {
         </p>
       ) : null}
 
-      {release ? (
-        <details className={styles.others}>
-          <summary>其他平台</summary>
-          <ul>
-            {release.assets.map((asset) => (
-              <AssetRow key={asset.name} asset={asset} />
-            ))}
-          </ul>
-        </details>
-      ) : null}
+      <details className={styles.others}>
+        <summary>其他平台</summary>
+        <ul>
+          {release.assets.map((asset) => (
+            <AssetRow key={asset.name} asset={asset} />
+          ))}
+        </ul>
+      </details>
+    </>
+  );
+}
 
-      <a className={styles.cursorLink} href="https://cursor.com" rel="noopener noreferrer">
-        需先安装官方 Cursor →
-      </a>
+export function DownloadActions() {
+  const { release, retryRelease, platform } = useRelease();
+
+  return (
+    <div className={styles.stack}>
+      {release.status === "loading" ? <Loading /> : null}
+      {release.status === "failed" ? <Failed retry={retryRelease} /> : null}
+      {release.status === "ready" ? (
+        <Ready release={release.release} platform={platform} />
+      ) : null}
     </div>
   );
 }

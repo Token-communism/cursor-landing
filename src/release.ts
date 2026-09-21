@@ -1,8 +1,6 @@
 export const REPO = "Token-communism/cursor-jingling";
 export const API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 export const RELEASES_PAGE = `https://github.com/${REPO}/releases/latest`;
-export const CACHE_KEY = "cj-release-v1";
-export const CACHE_TTL_MS = 30 * 60 * 1000;
 
 export type InstallerPlatform = "macos" | "windows";
 
@@ -34,11 +32,6 @@ export interface ParsedRelease {
   version: string;
   publishedAt: string;
   assets: InstallerAsset[];
-}
-
-export interface CacheEnvelope {
-  savedAt: number;
-  release: ParsedRelease;
 }
 
 const PLATFORM_LABEL: Record<InstallerPlatform, string> = {
@@ -127,43 +120,11 @@ export function selectInstaller(
   return assets.find((asset) => asset.platform === platform);
 }
 
-export function readCachedRelease(
-  storage: Pick<Storage, "getItem">,
-  now = Date.now(),
-): ParsedRelease | null {
-  try {
-    const raw = storage.getItem(CACHE_KEY);
-    if (!raw) return null;
-    const envelope = JSON.parse(raw) as CacheEnvelope;
-    if (!envelope || typeof envelope.savedAt !== "number") return null;
-    if (now - envelope.savedAt > CACHE_TTL_MS) return null;
-    const parsed = parseRelease({
-      tag_name: envelope.release?.version
-        ? `v${envelope.release.version}`
-        : undefined,
-      published_at: envelope.release?.publishedAt,
-      assets: envelope.release?.assets?.map((asset) => ({
-        name: asset.name,
-        label: asset.displayName,
-        size: asset.size,
-        browser_download_url: asset.downloadUrl,
-      })),
-    });
-    return parsed;
-  } catch {
-    return null;
-  }
-}
-
-export function writeCachedRelease(
-  storage: Pick<Storage, "setItem">,
-  release: ParsedRelease,
-  now = Date.now(),
-): void {
-  const envelope: CacheEnvelope = { savedAt: now, release };
-  storage.setItem(CACHE_KEY, JSON.stringify(envelope));
-}
-
+/**
+ * Live fetch is the only source of Cursor 精灵 download links: old assets are
+ * deleted from GitHub when a new version ships, so any cached or build-time
+ * copy may point at files that no longer exist.
+ */
 export async function fetchLatestRelease(
   fetcher: typeof fetch = fetch,
 ): Promise<ParsedRelease | null> {

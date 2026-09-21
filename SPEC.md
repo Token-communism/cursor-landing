@@ -36,11 +36,12 @@
 └── src/
     ├── main.tsx
     ├── App.tsx
-    ├── release.ts               # 最新版本与安装包解析（第 3 节，全站最关键的逻辑）
-    ├── ReleaseContext.tsx       # 预取数据 + 运行时刷新
+    ├── release.ts               # 精灵最新版本与安装包解析（第 3 节，全站最关键的逻辑）
+    ├── cursor.ts                # 官方 Cursor 最新版下载直链解析（3.7）
+    ├── ReleaseContext.tsx       # 预取数据 + 运行时刷新（精灵 + 官方 Cursor）
     ├── platform.ts              # 访客系统识别
     ├── components/              # 跨屏复用的下载按钮与图标
-    ├── sections/                # 每屏一个组件
+    ├── sections/                # 每屏一个组件：Hero（精灵下载）、CursorDownload（官方 Cursor 下载）、Footer
     └── styles/                  # 设计令牌与全局样式
 ```
 
@@ -89,7 +90,7 @@ Cursor 精灵（本机桌面应用 + 本地管理服务）
 
 ### 2.5 使用前提
 
-用户必须先自行安装官方 Cursor 桌面版（https://cursor.com）。Cursor 精灵不附带、不代替 Cursor。这一点要在首屏下载按钮附近就提示到。
+用户必须先自行安装官方 Cursor 桌面版。Cursor 精灵不附带、不代替 Cursor。这一点要在首屏下载按钮附近就提示到，并用一个独立板块给出官方 Cursor 安装包的下载直链（见 3.7 与 4.2），不要只丢一个 cursor.com 链接，也不要把它和精灵的下载按钮混在一起。
 
 ### 2.6 必须出现的免责声明
 
@@ -104,11 +105,12 @@ Cursor 精灵（本机桌面应用 + 本地管理服务）
 | 下载 / Release 仓库 | https://github.com/Token-communism/cursor-jingling |
 | 最新 Release 页 | https://github.com/Token-communism/cursor-jingling/releases/latest |
 | 提交问题 | https://github.com/Token-communism/cursor-jingling/issues |
-| 官方 Cursor | https://cursor.com |
+| 官方 Cursor | https://cursor.com（仅在拿不到下载直链时作为兜底） |
+| 官方 Cursor 下载直链数据源 | https://raw.githubusercontent.com/worryzyy/awesome-cursor-download/master/cursor-version-archive.json |
 | 开源协议 | MIT |
 | 获取密钥 | 待补充。未提供前不要渲染「获取密钥」按钮，不要编造地址 |
 
-⚠️ 对外只暴露 cursor-jingling，页面任何位置都不要出现其他仓库地址。
+⚠️ 对外只暴露 cursor-jingling，页面任何位置都不要出现其他仓库地址。awesome-cursor-download 只在代码里作为数据源被请求，页面上不渲染它的地址；页面展示的官方 Cursor 下载链接全部指向 downloads.cursor.com。
 
 ## 3. 下载逻辑（最关键的一节）
 
@@ -161,13 +163,19 @@ api.github.com 返回 `access-control-allow-origin: *`，浏览器可直接 fetc
 
 版本号 = `tag_name` 去掉开头的 v。发布时间 = `published_at`，展示为 YYYY-MM-DD。体积 = `size` 字节，1024 进制换算 MB 保留一位小数（如 11.9 MB）。
 
-### 3.5 三级降级链
+### 3.5 只信运行时结果，不展示旧版链接
 
-1. **构建时预取**：`vite.config.ts` 在 build 阶段请求一次 API，把结果写成内联常量（如 `src/release.fallback.json`）。预取失败不得让构建失败，写入空对象即可。
-2. **运行时刷新**：页面加载后 fetch 一次 API，成功则覆盖预取数据。不要阻塞首屏渲染——先用预取数据画按钮，拿到新数据再静默替换。
-3. **兜底**：预取和运行时都失败时，下载按钮指向 RELEASES_PAGE，文案降级为「前往 GitHub 下载」，隐藏版本号与体积行。
+发新版后 GitHub 上的旧版资产会被删除，所以任何构建时预取或本地缓存的精灵下载链接都可能已经 404。Cursor 精灵的下载链接**只**来自页面加载后对 API 的一次实时 fetch，不做构建时预取，不做 localStorage 缓存。
 
-对成功结果做 localStorage 缓存（键名带版本前缀，TTL 30 分钟）。
+页面按三个状态渲染首屏下载区：
+
+| 状态 | 首屏表现 |
+| --- | --- |
+| `loading` | 主按钮位置显示禁用态「正在获取最新版本…」 |
+| `ready` | 正常渲染下载按钮、版本行与「其他平台」 |
+| `failed`（超时、限流、网络不通） | 显示提示框：说明需要能访问 github.com（部分网络需代理）、页面不会展示历史链接以免下载到失效版本；提供「重试」按钮（重新 fetch）和「前往 GitHub Releases 页面」链接 |
+
+失败态**不得**渲染任何具体安装包直链。
 
 ### 3.6 访客系统识别
 
@@ -183,6 +191,47 @@ navigator.userAgentData?.platform  // "macOS" | "Windows" | "Linux" | ...  优�
 
 无论识别结果如何，主按钮下方都要有一个「其他平台」次级入口，展开后列出全部可下载安装包（平台、展示名、体积）。
 
+### 3.7 官方 Cursor 下载直链
+
+官方 Cursor 的下载入口是首屏之下一个独立板块（4.2），与首屏的 Cursor 精灵下载严格分开，避免访客混淆「下载精灵」与「下载原版」。首屏的「需先安装官方 Cursor →」只是一个锚点链接跳到该板块。数据来自 awesome-cursor-download 仓库维护的 `cursor-version-archive.json`（GitHub Actions 每小时刷新一次，raw.githubusercontent.com 带 `access-control-allow-origin: *`，gzip 后约 40 KB）。
+
+```ts
+const CURSOR_ARCHIVE_URL =
+  "https://raw.githubusercontent.com/worryzyy/awesome-cursor-download/master/cursor-version-archive.json";
+```
+
+响应形态（键为版本号，最新在前，但不要依赖键顺序，按语义化版本排序取最大者；忽略 `Unknown` 这类非版本键）：
+
+```json
+{
+  "3.21.16": {
+    "date": "2026-09-19",
+    "platforms": {
+      "windows":       { "url": "https://downloads.cursor.com/production/<hash>/win32/x64/system-setup/CursorSetup-x64-3.21.16.exe" },
+      "windows_arm64": { "url": ".../win32/arm64/system-setup/CursorSetup-arm64-3.21.16.exe" },
+      "mac":           { "url": ".../darwin/universal/Cursor-darwin-universal.dmg" },
+      "mac_intel":     { "url": ".../darwin/x64/Cursor-darwin-x64.dmg" },
+      "mac_arm64":     { "url": ".../darwin/arm64/Cursor-darwin-arm64.dmg" },
+      "linux":         { "url": ".../linux/x64/Cursor-3.21.16-x86_64.AppImage" },
+      "linux_arm64":   { "url": ".../linux/arm64/Cursor-3.21.16-aarch64.AppImage" }
+    },
+    "changelog": "N/A"
+  }
+}
+```
+
+| 平台键 | 所属卡片 | 展示名 |
+|---|---|---|
+| `mac` | macOS | 通用版（Intel 与 Apple 芯片） |
+| `mac_arm64` | macOS | Apple 芯片（M 系列） |
+| `mac_intel` | macOS | Intel |
+| `windows` | Windows | x64 |
+| `windows_arm64` | Windows | ARM64 |
+| `linux` | Linux | x64 AppImage |
+| `linux_arm64` | Linux | ARM64 AppImage |
+
+降级链与 3.5 相同：构建时预取只写入最新一个版本到 `src/cursor.fallback.json`（不要把整份历史打进 bundle）→ 运行时 fetch 覆盖 → localStorage 缓存 30 分钟 → 都失败时板块只保留标题与说明，按钮退化为「前往 cursor.com 下载」。
+
 ## 4. 页面结构（单页滚动，屏间足够留白，不做整屏吸附）
 
 ### 4.1 首屏 Hero
@@ -194,12 +243,31 @@ Cursor 精灵
 
 [ ↓ 下载 macOS 版 ]   其他平台 ▾
 v0.1.4 · 11.9 MB · Apple 芯片 · 2026-09-16
-需先安装官方 Cursor →
+需先安装官方 Cursor →        ← 锚点，跳到 4.2 板块
 ```
 
-背景：深色 + 一团品牌绿（#00ec7e）的径向柔光，透明度 15%–22%，位置偏上。主按钮是全页唯一的实心高饱和按钮，用品牌蓝 #4489ff。「需先安装官方 Cursor →」是指向 https://cursor.com 的浅色小字链接，必须有。
+背景：深色 + 一团品牌绿（#00ec7e）的径向柔光，透明度 15%–22%，位置偏上。主按钮是全页唯一的实心高饱和按钮，用品牌蓝 #4489ff。「需先安装官方 Cursor →」是浅色小字锚点链接（`#cursor-download`），必须有。首屏只放 Cursor 精灵的下载，不要在这里混入官方 Cursor 的安装包。
 
-### 4.2 产品演示（首屏之下第一屏，优先级最高）
+### 4.2 安装官方 Cursor（首屏之下第一屏）
+
+独立板块，`id="cursor-download"`，背景用 `--bg-surface` 与首屏区分开。三张系统卡片并排，访客系统对应的卡片高亮边框并打「你的系统」标记；unknown 不高亮。
+
+```
+前置条件
+先安装官方 Cursor
+Cursor 精灵不附带、不代替 Cursor。请先安装官方 Cursor 桌面版，再安装上面的 Cursor 精灵。以下为官方安装包直链。
+最新版本 v3.21.16 · 2026-09-19
+
+┌ macOS ─────── 你的系统 ┐ ┌ Windows ──────────┐ ┌ Linux ────────────────┐
+│ 通用版（Intel 与 Apple 芯片） 下载 │ │ x64          下载 │ │ x64 AppImage     下载 │
+│ Apple 芯片（M 系列）        下载 │ │ ARM64        下载 │ │ ARM64 AppImage   下载 │
+│ Intel                      下载 │ │                   │ │                       │
+└────────────────────────────────┘ └───────────────────┘ └───────────────────────┘
+```
+
+卡片里的「下载」是次级按钮样式（`--bg-subtle` 底 + 边框），不要用首屏主按钮的实心品牌蓝，保证全页只有一个实心高饱和按钮。窄屏（< 900px）三卡竖排。数据与降级见 3.7。
+
+### 4.3 产品演示
 
 展示一张登录后主界面的静态截图 `public/demo-screenshot.webp`。
 
@@ -210,11 +278,11 @@ v0.1.4 · 11.9 MB · Apple 芯片 · 2026-09-16
 - 所有断点共用这一套，不做窄屏分支
 - 不要嵌入可交互演示。本仓库不含客户端源码，也不接受客户端构建产物
 
-### 4.3 核心能力
+### 4.4 核心能力
 
 4–5 张卡片，两列网格（窄屏单列）。图标 + 标题 + 一到两句话。标题照抄 2.3：一键启动 / 导入本机 Cursor / 用量与额度 / 调用明细 / 桌面体验。
 
-### 4.4 工作原理（信任屏）
+### 4.5 工作原理（信任屏）
 
 左侧 2.4 的数据流转图（等宽 ASCII 或 div 重绘的三个盒子 + 箭头）。右侧四条否定式承诺，每条前一个对勾：
 
@@ -225,14 +293,14 @@ v0.1.4 · 11.9 MB · Apple 芯片 · 2026-09-16
 
 下方小字：「本机只保存三样东西，都在 ~/.cursor-byok-v3/：接入密钥与桌面设置、独立 Cursor profile、日志。」
 
-### 4.5 快速开始（四步，横向编号步骤条，窄屏竖排）
+### 4.6 快速开始（四步，横向编号步骤条，窄屏竖排）
 
 1. 安装桌面版 Cursor
 2. 下载并安装 Cursor 精灵
 3. 打开 Cursor 精灵，输入接入密钥登录
 4. 在「用量」页顶部的启动卡点击「一键启动」，会弹出一份已登录的独立 Cursor 窗口
 
-### 4.6 常见问题（原生 `<details>`）
+### 4.7 常见问题（原生 `<details>`）
 
 - **会影响我现在用的 Cursor 吗？** 不会。Cursor 精灵用独立的用户数据目录启动一份新的 Cursor，不碰你原来的安装和设置，两份可以同时开着。
 - **支持哪些系统？** 目前提供 macOS（Apple 芯片）和 Windows 64 位安装包。Linux 可以从源码自行构建。
@@ -240,11 +308,11 @@ v0.1.4 · 11.9 MB · Apple 芯片 · 2026-09-16
 - **我的数据存在哪？** 全部在本机 ~/.cursor-byok-v3/，包含接入密钥与设置、独立 Cursor profile、日志。
 - （「接入密钥从哪来？」待补充，链接确定前不要放）
 
-### 4.7 页尾下载区
+### 4.8 页尾下载区
 
 再来一次 CTA，直接摊开完整安装包表格（平台 / 文件名 / 体积 / 下载按钮），不折叠。旁边「在 GitHub 上查看全部版本」次级链接。
 
-### 4.8 页脚
+### 4.9 页脚
 
 GitHub 仓库链接、提交问题链接、MIT 协议、2.6 免责声明原文。
 
@@ -305,7 +373,7 @@ npm run build        # 产出 dist/
 - 不要硬编码带版本号的下载直链
 - 不要把 .app.tar.gz 或 latest.json 当成安装包
 - 不要出现 macOS Intel 或 Linux 安装包的下载入口
-- 不要提及或链接 cursor-jingling 以外的任何仓库
+- 不要在页面上提及或链接 cursor-jingling 以外的任何仓库（awesome-cursor-download 只作为代码里的数据源）
 - 不要使用 Cursor 官方 Logo、配色标识，不要暗示与 Cursor 官方存在合作或授权
 - 不要放任何真实接入密钥，示例一律 sk-xxxxxx
 - 不要新建注册 / 登录 / 支付流程

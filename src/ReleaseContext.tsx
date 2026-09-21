@@ -1,5 +1,6 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -7,42 +8,69 @@ import {
   type ReactNode,
 } from "react";
 import { detectVisitorPlatform, type VisitorPlatform } from "./platform";
-import fallbackJson from "./release.fallback.json";
+import cursorFallback from "./cursor.fallback.json";
+import { fetchLatestRelease, type ParsedRelease } from "./release";
 import {
-  fetchLatestRelease,
-  parseRelease,
-  readCachedRelease,
-  writeCachedRelease,
-  type ParsedRelease,
-} from "./release";
+  fetchLatestCursor,
+  parseCursorArchive,
+  readCachedCursor,
+  writeCachedCursor,
+  type CursorRelease,
+} from "./cursor";
+
+/**
+ * Cursor 精灵 release is only ever shown from a live GitHub fetch. There is no
+ * build-time or cached copy: old assets are removed from GitHub, so stale
+ * links would 404 for the visitor.
+ */
+export type ReleaseState =
+  | { status: "loading" }
+  | { status: "ready"; release: ParsedRelease }
+  | { status: "failed" };
 
 export interface ReleaseContextValue {
-  release: ParsedRelease | null;
+  release: ReleaseState;
+  /** Re-run the GitHub fetch after a failure. */
+  retryRelease: () => void;
+  /** Official Cursor latest version from awesome-cursor-download. */
+  cursor: CursorRelease | null;
   platform: VisitorPlatform;
 }
 
 const ReleaseContext = createContext<ReleaseContextValue | null>(null);
 
 export function ReleaseProvider({ children }: { children: ReactNode }) {
-  const [release, setRelease] = useState<ParsedRelease | null>(() =>
-    parseRelease(fallbackJson),
+  const [release, setRelease] = useState<ReleaseState>({ status: "loading" });
+  const [cursor, setCursor] = useState<CursorRelease | null>(() =>
+    parseCursorArchive(cursorFallback),
   );
   const [platform] = useState<VisitorPlatform>(() => detectVisitorPlatform());
 
-  useEffect(() => {
-    const cached = readCachedRelease(window.localStorage);
-    if (cached) setRelease(cached);
-
+  const loadRelease = useCallback(() => {
+    setRelease({ status: "loading" });
     void fetchLatestRelease().then((fresh) => {
+      setRelease(fresh ? { status: "ready", release: fresh } : { status: "failed" });
+    });
+  }, []);
+
+  useEffect(() => {
+    loadRelease();
+  }, [loadRelease]);
+
+  useEffect(() => {
+    const cachedCursor = readCachedCursor(window.localStorage);
+    if (cachedCursor) setCursor(cachedCursor);
+
+    void fetchLatestCursor().then((fresh) => {
       if (!fresh) return;
-      writeCachedRelease(window.localStorage, fresh);
-      setRelease(fresh);
+      writeCachedCursor(window.localStorage, fresh);
+      setCursor(fresh);
     });
   }, []);
 
   const value = useMemo(
-    () => ({ release, platform }),
-    [release, platform],
+    () => ({ release, retryRelease: loadRelease, cursor, platform }),
+    [release, loadRelease, cursor, platform],
   );
 
   return (
